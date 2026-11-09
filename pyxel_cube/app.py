@@ -11,6 +11,7 @@
   2. 2026-11-09 Q終了、A/Cによる形状切替を追加
   3. 2026-11-09 Tキー(slant)を追加し、形状キーをテーブル化
   4. 2026-11-09 Lキー(横向き円柱)を追加し、形状定義を shapes.py へ移行
+  5. 2026-11-09 SHAPES が描画関数を返す形式に合わせて draw を変更
 """
 
 import pyxel
@@ -19,7 +20,6 @@ from config import (BG_COLOR, DISPLAY_SCALE, ELEV_DEFAULT, ELEV_MAX,
                     ELEV_MIN, ELEV_STEP, FPS, HUD_COLOR, SCREEN_H,
                     SCREEN_W, TITLE, YAW_STEP)
 from mathutil import clamp
-from renderer import draw_shape
 from shapes import (DEFAULT_SHAPE, SHAPE_CUBE, SHAPE_CYLINDER, SHAPE_LABELS,
                     SHAPE_SLANT, SHAPE_WEDGE, SHAPES)
 
@@ -69,6 +69,6 @@ class CubeApp:
     def draw(self):
         """1フレームを描画する."""
         pyxel.cls(BG_COLOR)
-        draw_shape(SHAPES[self.shape], self.yaw, self.elev)
+        SHAPES[self.shape](self.yaw, self.elev)
         pyxel.text(1, 1, f"EL {int(self.elev):02d}", HUD_COLOR)
         pyxel.text(1, 58, SHAPE_LABELS[self.shape], HUD_COLOR)

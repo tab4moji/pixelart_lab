@@ -1,48 +1,51 @@
-"""cylinder_model.py - 円柱(N角柱近似)のモデル生成.
+"""cylinder_model.py - 円柱の寸法・配色・ビュー変換.
 
-目的: 輸がX方向の横向き円柱を、N角柱として頂点・面データに変換する。
-機能: build_cylinder() が (頂点列, 面列) を返す。側面は四角形を周方向にN枚、
-      両端はN角形のキャップを2枚。側面は縞模様に2色を交互に割り当てる。
-      法線は側面の中心角方向、キャップは±X。面の形式は cube_model.py と同じ。
+目的: 軸がX方向の横向き円柱を、解析的な式で扱うための定数とビュー情報を提供する。
+機能: make_view() が回転・見下ろし角の三角関数と軸方向をまとめた View を返す。
+      to_world() はビュー空間の点をワールド座標へ戻し、stripe_color() が縞の色を決める。
+      ポリゴン近似は使わない(整数頂点と塗りの端処理による外側ピクセルを避けるため)。
 
 更新履歴:
-  1. 2026-11-09 初版
+  1. 2026-11-09 初版(16角柱近似)
+  2. 2026-11-09 解析的な円柱(レイキャスト用)に全面変更
 """
 
 import math
+from collections import namedtuple
 
+from projection import rotate_yaw, tilt
+
+RADIUS = 0.9
+HALF_LENGTH = 1.2
+STRIPES = 16
 SIDE_COLORS = (10, 11)
 CAP_COLOR = 12
 
+View = namedtuple("View", "axis cos_a sin_a cos_e sin_e")
 
-def ring_vertices(x_pos, segments, radius):
-    """X=x_pos の平面上の円周頂点列を返す."""
-    step = 2.0 * math.pi / segments
-    result = [(x_pos, radius * math.cos(step * i), radius * math.sin(step * i))
-              for i in range(segments)]
+
+def make_view(yaw_deg, elev_deg):
+    """軸方向(ビュー空間)と三角関数をまとめた View を返す."""
+    yaw = math.radians(yaw_deg)
+    elev = math.radians(elev_deg)
+    axis = tilt(rotate_yaw((1.0, 0.0, 0.0), yaw), elev)
+    result = View(axis, math.cos(yaw), math.sin(yaw),
+                  math.cos(elev), math.sin(elev))
     return result
 
 
-def side_face(index, segments):
-    """周方向 index 番目の側面(四角形)を返す."""
-    nxt = (index + 1) % segments
-    mid = 2.0 * math.pi * (index + 0.5) / segments
-    indices = (index, nxt, segments + nxt, segments + index)
-    normal = (0.0, math.cos(mid), math.sin(mid))
-    color = SIDE_COLORS[index % len(SIDE_COLORS)]
-    result = (indices, normal, color)
-    return result
+def to_world(x_pos, up, depth, view):
+    """ビュー空間(x, 上, 手前)の点をワールド座標(X, Y, Z)へ戻す."""
+    world_y = up * view.cos_e + depth * view.sin_e
+    z_yawed = -up * view.sin_e + depth * view.cos_e
+    world_x = x_pos * view.cos_a - z_yawed * view.sin_a
+    world_z = x_pos * view.sin_a + z_yawed * view.cos_a
+    return (world_x, world_y, world_z)
 
 
-def build_cylinder(segments=16, radius=0.9, half_length=1.2):
-    """横向き円柱の (頂点列, 面列) を生成する."""
-    if segments < 4 or segments % 2:
-        raise ValueError(f"segments must be even and >= 4: {segments}")
-    vertices = (ring_vertices(-half_length, segments, radius)
-                + ring_vertices(half_length, segments, radius))
-    sides = [side_face(i, segments) for i in range(segments)]
-    cap_neg = (tuple(range(segments)), (-1.0, 0.0, 0.0), CAP_COLOR)
-    cap_pos = (tuple(range(segments, 2 * segments)),
-               (1.0, 0.0, 0.0), CAP_COLOR)
-    result = (tuple(vertices), tuple(sides) + (cap_neg, cap_pos))
+def stripe_color(world_y, world_z):
+    """円周方向の角度から縞の色を返す."""
+    angle = math.atan2(world_z, world_y) % (2.0 * math.pi)
+    index = int(angle / (2.0 * math.pi / STRIPES))
+    result = SIDE_COLORS[index % len(SIDE_COLORS)]
     return result
