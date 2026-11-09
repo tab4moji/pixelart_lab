@@ -3,7 +3,8 @@
 目的: 64x64 画面で立体を自動回転させ、見下ろし角と形状を操作する。
 機能: ↑キーで見下ろし角を増加(→90度=真上)、↓キーで減少(→0度=真横)。
       A: 対角線切断ブロック(wedge)、T: 側面の対角線切断ブロック(slant)、
-      L: 横向き円柱(cylinder)、C: 通常の立方体。Q または ESC で終了。
+      L: 横向き円柱(cylinder)、R: 横向きラグビーボール(rugby)、
+      C: 通常の立方体。Q または ESC で終了。
       左上に角度、左下に形状名を表示。
 
 更新履歴:
@@ -12,6 +13,7 @@
   3. 2026-11-09 Tキー(slant)を追加し、形状キーをテーブル化
   4. 2026-11-09 Lキー(横向き円柱)を追加し、形状定義を shapes.py へ移行
   5. 2026-11-09 SHAPES が描画関数を返す形式に合わせて draw を変更
+  6. 2026-11-09 Rキー(ラグビーボール)を追加
 """
 
 import pyxel
@@ -21,12 +23,13 @@ from config import (BG_COLOR, DISPLAY_SCALE, ELEV_DEFAULT, ELEV_MAX,
                     SCREEN_W, TITLE, YAW_STEP)
 from mathutil import clamp
 from shapes import (DEFAULT_SHAPE, SHAPE_CUBE, SHAPE_CYLINDER, SHAPE_LABELS,
-                    SHAPE_SLANT, SHAPE_WEDGE, SHAPES)
+                    SHAPE_RUGBY, SHAPE_SLANT, SHAPE_WEDGE, SHAPES)
 
 SHAPE_KEYS = (
     (pyxel.KEY_A, SHAPE_WEDGE),
     (pyxel.KEY_T, SHAPE_SLANT),
     (pyxel.KEY_L, SHAPE_CYLINDER),
+    (pyxel.KEY_R, SHAPE_RUGBY),
     (pyxel.KEY_C, SHAPE_CUBE),
 )
 
@@ -46,7 +49,7 @@ class CubeApp:
         pyxel.run(self.update, self.draw)
 
     def handle_shape_keys(self):
-        """A/T/L/C キーで形状を切り替える."""
+        """A/T/L/R/C キーで形状を切り替える."""
         for key, shape in SHAPE_KEYS:
             if pyxel.btnp(key):
                 self.shape = shape
