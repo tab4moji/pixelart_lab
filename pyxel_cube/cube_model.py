@@ -4,11 +4,14 @@
 機能: VERTICES(立方体の8頂点)を共有し、形状ごとの面データを持つ。
       cube : 通常の立方体(四角形を6面)。
       wedge: 平面 x+z=0 (垂直辺2本を通る対角平面)で切断した三角柱。
+      slant: 平面 x+y=0 (側面 z=±1 の対角線を通り Z 軸に平行)で
+             切断した、横倒しの三角柱。
       面は (頂点index列, 外向き法線, 色)。法線は符号判定のみなので非正規でよい。
 
 更新履歴:
   1. 2026-11-09 初版
   2. 2026-11-09 wedge(対角線切断ブロック)と形状選択を追加
+  3. 2026-11-09 slant(側面の対角線切断ブロック)を追加
 """
 
 VERTICES = (
@@ -40,16 +43,28 @@ FACES_WEDGE = (
     ((1, 4, 7, 2), (1, 0, 1), 14),
 )
 
+# x+y<=0 側を残す: 頂点 0,1,3,4,5,7 (2,6 は切断される)
+FACES_SLANT = (
+    ((0, 1, 3), (0, 0, -1), 9),
+    ((4, 5, 7), (0, 0, 1), 8),
+    ((0, 1, 5, 4), (0, -1, 0), 5),
+    ((0, 4, 7, 3), (-1, 0, 0), 11),
+    ((1, 3, 7, 5), (1, 1, 0), 14),
+)
+
 SHAPE_CUBE = "cube"
 SHAPE_WEDGE = "wedge"
+SHAPE_SLANT = "slant"
 DEFAULT_SHAPE = SHAPE_CUBE
 
 SHAPES = {
     SHAPE_CUBE: FACES_CUBE,
     SHAPE_WEDGE: FACES_WEDGE,
+    SHAPE_SLANT: FACES_SLANT,
 }
 
 SHAPE_LABELS = {
     SHAPE_CUBE: "CUBE",
     SHAPE_WEDGE: "WEDGE",
+    SHAPE_SLANT: "SLANT",
 }

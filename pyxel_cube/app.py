@@ -2,12 +2,14 @@
 
 目的: 64x64 画面で立体を自動回転させ、見下ろし角と形状を操作する。
 機能: ↑キーで見下ろし角を増加(→90度=真上)、↓キーで減少(→0度=真横)。
-      A: 対角線切断ブロック(三角柱)、C: 通常の立方体。
-      Q または ESC で終了。左上に角度、左下に形状名を表示。
+      A: 対角線切断ブロック(wedge)、T: 側面の対角線切断ブロック(slant)、
+      C: 通常の立方体。Q または ESC で終了。
+      左上に角度、左下に形状名を表示。
 
 更新履歴:
   1. 2026-11-09 初版
   2. 2026-11-09 Q終了、A/Cによる形状切替を追加
+  3. 2026-11-09 Tキー(slant)を追加し、形状キーをテーブル化
 """
 
 import pyxel
@@ -16,9 +18,15 @@ from config import (BG_COLOR, DISPLAY_SCALE, ELEV_DEFAULT, ELEV_MAX,
                     ELEV_MIN, ELEV_STEP, FPS, HUD_COLOR, SCREEN_H,
                     SCREEN_W, TITLE, YAW_STEP)
 from cube_model import (DEFAULT_SHAPE, SHAPE_CUBE, SHAPE_LABELS,
-                        SHAPE_WEDGE, SHAPES)
+                        SHAPE_SLANT, SHAPE_WEDGE, SHAPES)
 from mathutil import clamp
 from renderer import draw_shape
+
+SHAPE_KEYS = (
+    (pyxel.KEY_A, SHAPE_WEDGE),
+    (pyxel.KEY_T, SHAPE_SLANT),
+    (pyxel.KEY_C, SHAPE_CUBE),
+)
 
 
 class CubeApp:
@@ -36,11 +44,10 @@ class CubeApp:
         pyxel.run(self.update, self.draw)
 
     def handle_shape_keys(self):
-        """A/C キーで形状を切り替える."""
-        if pyxel.btnp(pyxel.KEY_A):
-            self.shape = SHAPE_WEDGE
-        if pyxel.btnp(pyxel.KEY_C):
-            self.shape = SHAPE_CUBE
+        """A/T/C キーで形状を切り替える."""
+        for key, shape in SHAPE_KEYS:
+            if pyxel.btnp(key):
+                self.shape = shape
 
     def handle_elev_keys(self):
         """↑↓キーで見下ろし角を変更する."""
