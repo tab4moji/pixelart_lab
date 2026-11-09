@@ -4,9 +4,11 @@
 機能: 画面の各ピクセルから平行光線を飛ばし、楕円体との手前側の交点を2次方程式で求める。
       交点の法線で陰影(ディザ)を決め、子午線上は縫い目色にする。ポリゴンは使わない。
       軸方向 a と光線 (x, 上, t) の扱いは cylinder_cast.py と同じ。
+      sample_pixel() は (深度 t, 色, 面ID) を返し、Z合成(composite.py)でも使う。
 
 更新履歴:
   1. 2026-11-09 初版
+  2. 2026-11-09 shade_pixel を sample_pixel に変更し、深度 t も返すようにした
 """
 
 import math
@@ -36,8 +38,8 @@ def ellipsoid_depth(q_dot_a, q_sq, axis):
     return result
 
 
-def shade_pixel(px, py, x_pos, up, view):
-    """画素 (px, py) の色を返す。楕円体の外なら None."""
+def sample_pixel(px, py, x_pos, up, view):
+    """画素 (px, py) の (深度 t, 色, 面ID) を返す。楕円体の外なら None."""
     axis = view.axis
     q_dot_a = x_pos * axis[0] + up * axis[1]
     t_hit = ellipsoid_depth(q_dot_a, x_pos * x_pos + up * up, axis)
@@ -45,11 +47,11 @@ def shade_pixel(px, py, x_pos, up, view):
     if t_hit is not None:
         _, world_y, world_z = to_world(x_pos, up, t_hit, view)
         if on_seam(world_y, world_z):
-            result = SEAM_COLOR
+            result = (t_hit, SEAM_COLOR, 0)
         else:
             s_axis = q_dot_a + t_hit * axis[2]
             normal = surface_normal(x_pos, up, t_hit, s_axis, axis)
-            result = dither_color(brightness(normal), px, py)
+            result = (t_hit, dither_color(brightness(normal), px, py), 0)
     return result
 
 
@@ -61,9 +63,9 @@ def ellipsoid_pixels(yaw_deg, elev_deg):
     for py in range(CENTER_Y - EXTENT, CENTER_Y + EXTENT + 1):
         up = (CENTER_Y - py) / SCALE
         for px in range(CENTER_X - EXTENT, CENTER_X + EXTENT + 1):
-            color = shade_pixel(px, py, (px - CENTER_X) / SCALE, up, view)
-            if color is not None:
-                pixels.append((px, py, color))
+            hit = sample_pixel(px, py, (px - CENTER_X) / SCALE, up, view)
+            if hit is not None:
+                pixels.append((px, py, hit[1]))
     return pixels
 
 

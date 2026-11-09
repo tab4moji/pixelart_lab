@@ -4,9 +4,11 @@
 機能: 画面の各ピクセルから平行光線を飛ばし、円柱の側面・両端キャップとの交点のうち
       最も手前を採用して色を決める。ポリゴンを使わないので外側へのはみ出しが出ない。
       軸方向はビュー空間で a、光線は (x, 上, t)(tが大きいほど手前)。
+      sample_pixel() は (深度 t, 色, 面ID) を返し、Z合成(composite.py)でも使う。
 
 更新履歴:
   1. 2026-11-09 初版
+  2. 2026-11-09 shade_pixel を sample_pixel に変更し、深度 t も返すようにした
 """
 
 import math
@@ -52,8 +54,11 @@ def cap_depth(q_dot_a, q_sq, axis):
     return result
 
 
-def shade_pixel(x_pos, up, view):
-    """ビュー空間の位置 (x, 上) の画素色を返す。円柱外なら None."""
+def sample_pixel(px, py, x_pos, up, view):
+    """画素の (深度 t, 色, 面ID) を返す。円柱外なら None.
+
+    px, py は他形状と引数を揃えるためのもので、円柱では使わない。
+    """
     axis = view.axis
     q_dot_a = x_pos * axis[0] + up * axis[1]
     q_sq = x_pos * x_pos + up * up
@@ -62,9 +67,9 @@ def shade_pixel(x_pos, up, view):
     result = None
     if t_side is not None and (t_cap is None or t_side >= t_cap):
         _, world_y, world_z = to_world(x_pos, up, t_side, view)
-        result = stripe_color(world_y, world_z)
+        result = (t_side, stripe_color(world_y, world_z), 0)
     elif t_cap is not None:
-        result = CAP_COLOR
+        result = (t_cap, CAP_COLOR, 0)
     return result
 
 
@@ -76,9 +81,9 @@ def cylinder_pixels(yaw_deg, elev_deg):
     for py in range(CENTER_Y - EXTENT, CENTER_Y + EXTENT + 1):
         up = (CENTER_Y - py) / SCALE
         for px in range(CENTER_X - EXTENT, CENTER_X + EXTENT + 1):
-            color = shade_pixel((px - CENTER_X) / SCALE, up, view)
-            if color is not None:
-                pixels.append((px, py, color))
+            hit = sample_pixel(px, py, (px - CENTER_X) / SCALE, up, view)
+            if hit is not None:
+                pixels.append((px, py, hit[1]))
     return pixels
 
 

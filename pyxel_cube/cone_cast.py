@@ -5,9 +5,11 @@
       最も手前を採用する。側面は法線で陰影、底面は -軸方向の法線で陰影を付ける。
       側面の2次方程式は両側の円錐(頂点の向こう側)も解に含むため、軸方向成分 s が
       [-H, H] に入る解だけを採る。
+      sample_pixel() は (深度 t, 色, 面ID) を返し、Z合成(composite.py)でも使う。
 
 更新履歴:
   1. 2026-11-09 初版
+  2. 2026-11-09 shade_pixel を sample_pixel に変更し、深度 t も返すようにした
 """
 
 import math
@@ -66,8 +68,8 @@ def cap_depth(q_dot_a, q_sq, axis):
     return result
 
 
-def shade_pixel(px, py, x_pos, up, view):
-    """画素 (px, py) の色を返す。円錐の外なら None."""
+def sample_pixel(px, py, x_pos, up, view):
+    """画素 (px, py) の (深度 t, 色, 面ID) を返す。円錐の外なら None."""
     axis = view.axis
     q_dot_a = x_pos * axis[0] + up * axis[1]
     q_sq = x_pos * x_pos + up * up
@@ -77,10 +79,12 @@ def shade_pixel(px, py, x_pos, up, view):
     if t_side is not None and (t_cap is None or t_side >= t_cap):
         s_axis = q_dot_a + t_side * axis[2]
         normal = side_normal(x_pos, up, t_side, s_axis, axis)
-        result = dither_ramp(SIDE_RAMP, brightness(normal), px, py)
+        color = dither_ramp(SIDE_RAMP, brightness(normal), px, py)
+        result = (t_side, color, 0)
     elif t_cap is not None:
         normal = (-axis[0], -axis[1], -axis[2])
-        result = dither_ramp(CAP_RAMP, brightness(normal), px, py)
+        color = dither_ramp(CAP_RAMP, brightness(normal), px, py)
+        result = (t_cap, color, 0)
     return result
 
 
@@ -92,9 +96,9 @@ def cone_pixels(yaw_deg, elev_deg):
     for py in range(CENTER_Y - EXTENT, CENTER_Y + EXTENT + 1):
         up = (CENTER_Y - py) / SCALE
         for px in range(CENTER_X - EXTENT, CENTER_X + EXTENT + 1):
-            color = shade_pixel(px, py, (px - CENTER_X) / SCALE, up, view)
-            if color is not None:
-                pixels.append((px, py, color))
+            hit = sample_pixel(px, py, (px - CENTER_X) / SCALE, up, view)
+            if hit is not None:
+                pixels.append((px, py, hit[1]))
     return pixels
 
 

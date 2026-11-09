@@ -4,10 +4,12 @@
 機能: 画面の各ピクセルから平行光線を飛ばし、tapered_hit の最も手前の交点で色を決める。
       小球の大きさは ratio(小球半径/大球半径、0〜1)で指定する。
       陰影・縫い目・パレットは rugby(ellipsoid_model)と共通。
+      sample_pixel() は (深度 t, 色, 面ID) を返し、Z合成(composite.py)でも使う。
 
 更新履歴:
   1. 2026-11-09 初版
   2. 2026-11-09 ratio 引数を追加、交点計算を tapered_hit.py へ分離
+  3. 2026-11-09 shade_pixel を sample_pixel に変更し、深度 t も返すようにした
 """
 
 import pyxel
@@ -20,8 +22,8 @@ from tapered_hit import hit_normal, nearest_hit
 from tapered_model import DEFAULT_RATIO, make_geometry
 
 
-def shade_pixel(px, py, x_pos, up, view, geo):
-    """画素 (px, py) の色を返す。物体の外なら None."""
+def sample_pixel(px, py, x_pos, up, view, geo):
+    """画素 (px, py) の (深度 t, 色, 面ID) を返す。物体の外なら None."""
     axis = view.axis
     q_dot_a = x_pos * axis[0] + up * axis[1]
     hit = nearest_hit(q_dot_a, x_pos * x_pos + up * up, axis, geo)
@@ -29,10 +31,11 @@ def shade_pixel(px, py, x_pos, up, view, geo):
     if hit is not None:
         _, world_y, world_z = to_world(x_pos, up, hit[0], view)
         if on_seam(world_y, world_z):
-            result = SEAM_COLOR
+            result = (hit[0], SEAM_COLOR, 0)
         else:
             normal = hit_normal(hit, x_pos, up, q_dot_a, axis, geo)
-            result = dither_color(brightness(normal), px, py)
+            color = dither_color(brightness(normal), px, py)
+            result = (hit[0], color, 0)
     return result
 
 
@@ -46,10 +49,10 @@ def tapered_pixels(yaw_deg, elev_deg, ratio=DEFAULT_RATIO):
     for py in range(CENTER_Y - extent, CENTER_Y + extent + 1):
         up = (CENTER_Y - py) / SCALE
         for px in range(CENTER_X - extent, CENTER_X + extent + 1):
-            color = shade_pixel(px, py, (px - CENTER_X) / SCALE, up, view,
-                                geo)
-            if color is not None:
-                pixels.append((px, py, color))
+            hit = sample_pixel(px, py, (px - CENTER_X) / SCALE, up, view,
+                               geo)
+            if hit is not None:
+                pixels.append((px, py, hit[1]))
     return pixels
 
 
