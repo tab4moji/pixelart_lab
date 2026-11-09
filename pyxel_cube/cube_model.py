@@ -1,4 +1,4 @@
-"""cube_model.py - 立体のモデルデータ.
+"""cube_model.py - 立方体系の頂点・面データ.
 
 目的: 頂点・面・法線・色を定義する。座標は右手系で Y が上。
 機能: VERTICES(立方体の8頂点)を共有し、形状ごとの面データを持つ。
@@ -7,11 +7,13 @@
       slant: 平面 x+y=0 (側面 z=±1 の対角線を通り Z 軸に平行)で
              切断した、横倒しの三角柱。
       面は (頂点index列, 外向き法線, 色)。法線は符号判定のみなので非正規でよい。
+      形状名との対応付けは shapes.py で行う。
 
 更新履歴:
   1. 2026-11-09 初版
   2. 2026-11-09 wedge(対角線切断ブロック)と形状選択を追加
   3. 2026-11-09 slant(側面の対角線切断ブロック)を追加
+  4. 2026-11-09 形状レジストリを shapes.py へ移動
 """
 
 VERTICES = (
@@ -51,20 +53,3 @@ FACES_SLANT = (
     ((0, 4, 7, 3), (-1, 0, 0), 11),
     ((1, 3, 7, 5), (1, 1, 0), 14),
 )
-
-SHAPE_CUBE = "cube"
-SHAPE_WEDGE = "wedge"
-SHAPE_SLANT = "slant"
-DEFAULT_SHAPE = SHAPE_CUBE
-
-SHAPES = {
-    SHAPE_CUBE: FACES_CUBE,
-    SHAPE_WEDGE: FACES_WEDGE,
-    SHAPE_SLANT: FACES_SLANT,
-}
-
-SHAPE_LABELS = {
-    SHAPE_CUBE: "CUBE",
-    SHAPE_WEDGE: "WEDGE",
-    SHAPE_SLANT: "SLANT",
-}
